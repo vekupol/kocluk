@@ -1,10 +1,10 @@
 import AppShell from "@/components/layout/AppShell";
-import GenelBakis from "@/components/sections/GenelBakis";
+import GunlukProgram from "@/components/sections/GunlukProgram";
 
 export default function Page() {
   return (
     <AppShell>
-      <GenelBakis />
+      <GunlukProgram/>
     </AppShell>
   );
 }
