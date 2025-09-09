@@ -244,15 +244,18 @@ export default function Calismalarim() {
   async function handleSave() {
     if (!user) return;
     if (isAllZero(form)) return;
-    const updates: DayMap = {
+
+    // 🔧 Burada Partial<DayMap> kullan
+    const updates: Partial<DayMap> = {
       [subject]: {
         questions: Number(form.questions || 0),
         correct: Number(form.correct || 0),
         wrong: Number(form.wrong || 0),
         blank: Number(form.blank || 0),
         minutes: Number(form.minutes || 0),
-      } satisfies DailyStudyEntry,
+      },
     };
+
     await saveDailyStudies(date, updates);
   }
 

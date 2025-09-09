@@ -1,13 +1,24 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  addDoc, collection, onSnapshot, orderBy, query, serverTimestamp, where,
+  addDoc,
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  where,
 } from "firebase/firestore";
 import { getFirebase } from "@/lib/firebase";
 import type { NewStudyLogInput, StudyLog } from "@/types/firestore";
 
 function tsToMs(ts: unknown): number {
-  if (typeof ts === "object" && ts && "toMillis" in ts && typeof (ts as { toMillis: () => number }).toMillis === "function") {
+  if (
+    typeof ts === "object" &&
+    ts &&
+    "toMillis" in ts &&
+    typeof (ts as { toMillis: () => number }).toMillis === "function"
+  ) {
     return (ts as { toMillis: () => number }).toMillis();
   }
   return Date.now();
@@ -21,7 +32,7 @@ export async function addStudyLog(input: NewStudyLogInput): Promise<StudyLog> {
 
   const ref = collection(db, "study_logs");
   const doc = await addDoc(ref, {
-    uid, // ⬅️ sahiplik
+    uid,
     date: input.date,
     subject: input.subject,
     questions: input.questions,
@@ -29,7 +40,12 @@ export async function addStudyLog(input: NewStudyLogInput): Promise<StudyLog> {
     notes: input.notes ?? "",
     createdAt: serverTimestamp(),
   });
-  return { id: doc.id, ...input, createdAt: Date.now() };
+  return {
+    id: doc.id,
+    ...input,
+    notes: input.notes ?? "",
+    createdAt: Date.now(),
+  };
 }
 
 /** Canlı çalışma listesi: sadece kullanıcıya ait kayıtlar */
@@ -38,7 +54,10 @@ export function useStudyLogs(uid: string | null) {
   const [items, setItems] = useState<StudyLog[]>([]);
 
   useEffect(() => {
-    if (!uid) { setItems([]); return; }
+    if (!uid) {
+      setItems([]);
+      return;
+    }
     const q = query(
       collection(db, "study_logs"),
       where("uid", "==", uid),
@@ -51,7 +70,7 @@ export function useStudyLogs(uid: string | null) {
         return {
           id: d.id,
           date: String(data.date ?? ""),
-          subject: String(data.subject ?? "Matematik") as StudyLog["subject"],
+          subject: String(data.subject ?? "Matematik"),
           questions: Number(data.questions ?? 0),
           minutes: Number(data.minutes ?? 0),
           notes: typeof data.notes === "string" ? data.notes : "",

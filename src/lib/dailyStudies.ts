@@ -8,7 +8,12 @@ import {
   type DocumentData,
 } from "firebase/firestore";
 import { getFirebase } from "@/lib/firebase";
-import type { DailyStudyEntry, DayMap, KoclukDoc, Subject6 } from "@/types/firestore";
+import type {
+  DailyStudyEntry,
+  DayMap,
+  KoclukDoc,
+  Subject6,
+} from "@/types/firestore";
 
 // UI'da kullanacağımız sabit sıra
 export const SUBJECTS6: Subject6[] = [
@@ -22,7 +27,8 @@ export const SUBJECTS6: Subject6[] = [
 
 // YYYY-MM-DD kontrolü
 export function asISO(date: string): string {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Tarih YYYY-MM-DD olmalı.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
+    throw new Error("Tarih YYYY-MM-DD olmalı.");
   return date;
 }
 
@@ -31,7 +37,10 @@ export function asISO(date: string): string {
  * kocluk/{uid} dokümanında days.<date>.<subject> alanlarını direkt yazar.
  * - Aynı derse ikinci kez yazılırsa: eskisini tamamen DEĞİŞTİRİR
  */
-export async function saveDailyStudies(date: string, updates: DayMap): Promise<void> {
+export async function saveDailyStudies(
+  date: string,
+  updates: Partial<DayMap> // 🔑 artık sadece gerekli ders(ler)i gönderebilirsin
+): Promise<void> {
   const { db, auth } = getFirebase();
   const uid = auth.currentUser?.uid;
   if (!uid) throw new Error("Giriş gerekli.");
@@ -47,7 +56,9 @@ export async function saveDailyStudies(date: string, updates: DayMap): Promise<v
   (Object.entries(updates) as [Subject6, DailyStudyEntry | undefined][])
     .filter(([, v]) => !!v)
     .forEach(([subject, entry]) => {
-      batch.update(ref, { [`days.${day}.${subject}`]: entry as DailyStudyEntry });
+      batch.update(ref, {
+        [`days.${day}.${subject}`]: entry as DailyStudyEntry,
+      });
     });
   await batch.commit();
 }
@@ -74,7 +85,7 @@ export function listenDayMap(
 
     // Eski array formatı varsa geriye uyumluluk
     if (Array.isArray(raw)) {
-      const map: DayMap = {};
+      const map: Partial<DayMap> = {};
       for (const item of raw) {
         const subj = item?.subject as Subject6 | undefined;
         if (!subj) continue;
@@ -86,11 +97,11 @@ export function listenDayMap(
           minutes: Number(item?.minutes ?? 0),
         };
       }
-      onData(map);
+      onData(map as DayMap);
       return;
     }
 
-    onData({});
+    onData({} as DayMap);
   });
 }
 

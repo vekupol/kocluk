@@ -1,4 +1,6 @@
-// 6 sabit ders
+// Ortak Firestore tipleri
+
+/** 8. sınıf müfredatı dersleri (örnek, sen genişletebilirsin) */
 export type Subject6 =
   | "Türkçe"
   | "Matematik"
@@ -7,20 +9,43 @@ export type Subject6 =
   | "Din Kültürü"
   | "İnkılap Tarihi";
 
-// Bir ders için günlük giriş
-export type DailyStudyEntry = {
-  questions: number; // toplam soru
-  correct: number;   // doğru
-  wrong: number;     // yanlış
-  blank: number;     // boş
-  minutes: number;   // süre (dk)
+/** Günlük çalışma giriş kaydı */
+export interface DailyStudyEntry {
+  questions: number;
+  correct: number;
+  wrong: number;
+  blank: number;
+  minutes: number;
+}
+
+/** Belirli bir günün tüm derslerini tutan map */
+export type DayMap = Record<Subject6, DailyStudyEntry | undefined>;
+
+/* ------------------------------------------------------------------ */
+/* ------------------------- Study Logs ----------------------------- */
+/* ------------------------------------------------------------------ */
+
+/** Firestore'a yazarken kullanılacak input */
+export type NewStudyLogInput = {
+  date: string; // "YYYY-MM-DD"
+  subject: string; // ders adı
+  questions: number; // çözülen soru
+  minutes: number; // harcanan süre (dk)
+  notes?: string; // opsiyonel açıklama
 };
 
-// Bir günün tüm dersleri (map)
-export type DayMap = Partial<Record<Subject6, DailyStudyEntry>>;
+/** Firestore'dan okunan / UI'de kullanılan satır */
+export type StudyLog = {
+  id: string; // Firestore document id
+  date: string; // "YYYY-MM-DD"
+  subject: string;
+  questions: number;
+  minutes: number;
+  notes: string;
+  createdAt: number; // timestamp (ms)
+};
 
-// kocluk/{uid} doküman yapısı (özet)
-export type KoclukDoc = {
+export interface KoclukDoc {
   uid: string;
-  days?: Record<string, DayMap>; // "YYYY-MM-DD" -> { Türkçe: {...}, Matematik: {...}, ... }
-};
+  days: Record<string, DayMap>;
+}

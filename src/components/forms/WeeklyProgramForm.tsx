@@ -5,14 +5,14 @@ import {
   type DayKey,
   type Task,
   makeProgramFromTasks,
-  createWeeklyProgram,
+  saveWeeklyProgram,
   addDaysISO,
   formatTR,
 } from "@/lib/program";
 import { SUBJECTS6 } from "@/lib/dailyStudies";
 import { Plus, Trash2 } from "lucide-react";
 
-const labels = {
+const labels: Record<DayKey, string> = {
   mon: "Pazartesi",
   tue: "Salı",
   wed: "Çarşamba",
@@ -20,11 +20,17 @@ const labels = {
   fri: "Cuma",
   sat: "Cumartesi",
   sun: "Pazar",
-} satisfies Record<DayKey, string>;
+};
 
 const dayOrder: DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
-type TaskInput = { subject: string; minutes: number; note: string };
+// 🔹 questions eklendi
+type TaskInput = {
+  subject: string;
+  minutes: number;
+  questions: number;
+  note: string;
+};
 
 export default function WeeklyProgramForm({
   teacherUid,
@@ -54,7 +60,12 @@ export default function WeeklyProgramForm({
       ...prev,
       [d]: [
         ...prev[d],
-        { subject: SUBJECTS6[0] ?? "Türkçe", minutes: 30, note: "" },
+        {
+          subject: SUBJECTS6[0] ?? "Türkçe",
+          minutes: 30,
+          questions: 0,
+          note: "",
+        },
       ],
     }));
   }
@@ -77,11 +88,12 @@ export default function WeeklyProgramForm({
         byDay[d] = rows[d].map((r) => ({
           subject: r.subject,
           minutes: Math.max(0, Number(r.minutes) || 0),
+          questions: Math.max(0, Number(r.questions) || 0), // ✅ artık garanti var
           note: r.note,
           done: 0,
         }));
       });
-      await createWeeklyProgram(
+      await saveWeeklyProgram(
         makeProgramFromTasks(weekStart, teacherUid, studentUid, byDay)
       );
       setMsg("Program kaydedildi.");
@@ -120,8 +132,9 @@ export default function WeeklyProgramForm({
               {rows[d].map((r, i) => (
                 <div
                   key={i}
-                  className="grid grid-cols-1 gap-2 md:grid-cols-[160px_120px_1fr_36px]"
+                  className="grid grid-cols-1 gap-2 md:grid-cols-[160px_100px_100px_1fr_36px]"
                 >
+                  {/* Ders */}
                   <select
                     value={r.subject}
                     onChange={(e) =>
@@ -136,6 +149,7 @@ export default function WeeklyProgramForm({
                     ))}
                   </select>
 
+                  {/* Süre (dk) */}
                   <input
                     type="number"
                     min={0}
@@ -147,6 +161,19 @@ export default function WeeklyProgramForm({
                     className="rounded-xl2 border borderc bg-brand/20 px-2 py-1.5 text-sm"
                   />
 
+                  {/* Soru */}
+                  <input
+                    type="number"
+                    min={0}
+                    value={r.questions}
+                    onChange={(e) =>
+                      updateRow(d, i, { questions: Number(e.target.value) })
+                    }
+                    placeholder="Soru"
+                    className="rounded-xl2 border borderc bg-brand/20 px-2 py-1.5 text-sm"
+                  />
+
+                  {/* Açıklama */}
                   <input
                     type="text"
                     value={r.note}
@@ -155,6 +182,7 @@ export default function WeeklyProgramForm({
                     className="rounded-xl2 border borderc bg-brand/20 px-2 py-1.5 text-sm"
                   />
 
+                  {/* Sil */}
                   <button
                     type="button"
                     onClick={() => removeRow(d, i)}

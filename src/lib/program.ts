@@ -1,22 +1,29 @@
 import {
-  writeBatch, doc, getDocs, collection, where, query,
+  writeBatch,
+  doc,
+  getDocs,
+  collection,
+  where,
+  query,
 } from "firebase/firestore";
 import { getFirebase } from "@/lib/firebase";
 import type { Subject6 } from "@/types/firestore";
 
-export type DayKey = "mon"|"tue"|"wed"|"thu"|"fri"|"sat"|"sun";
+export type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 
 export interface Task {
   subject: Subject6 | string; // ders
-  minutes: number;            // süre (dk)
-  questions: number;          // ← EKLENDİ: soru sayısı
-  note: string;               // açıklama
-  done: 0 | 1;                // onay
+  minutes: number; // süre (dk)
+  questions: number; // ← EKLENDİ: soru sayısı
+  note: string; // açıklama
+  done: 0 | 1; // onay
 }
-export interface DayPlan { tasks: Task[]; }
+export interface DayPlan {
+  tasks: Task[];
+}
 
 export interface WeeklyProgramDoc {
-  weekStartISO: string;   // Pazartesi (YYYY-MM-DD, yerel)
+  weekStartISO: string; // Pazartesi (YYYY-MM-DD, yerel)
   teacherUid: string;
   studentUid: string;
   items: Record<DayKey, DayPlan>;
@@ -41,14 +48,16 @@ export function addDaysISO(iso: string, n: number): string {
 }
 export function mondayISO(d: Date | string): string {
   const base = typeof d === "string" ? parseISODateLocal(d) : new Date(d);
-  base.setHours(0,0,0,0);
+  base.setHours(0, 0, 0, 0);
   const diff = (base.getDay() + 6) % 7; // Mon→0 ... Sun→6
   const mon = new Date(base);
   mon.setDate(base.getDate() - diff);
   return toISODateLocal(mon);
 }
 export function todayDayKey(date: Date = new Date()): DayKey {
-  return (["sun","mon","tue","wed","thu","fri","sat"][date.getDay()] as DayKey);
+  return ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][
+    date.getDay()
+  ] as DayKey;
 }
 export function formatTR(iso: string): string {
   const d = parseISODateLocal(iso);
@@ -59,21 +68,57 @@ export function formatTR(iso: string): string {
 }
 
 /* ---------------- oluşturma & güncelleme ---------------- */
-export function makeProgramFromTasks(weekStartISO: string, teacherUid: string, studentUid: string, byDay: Partial<Record<DayKey, Task[]>>): WeeklyProgramDoc {
-  const days: DayKey[] = ["mon","tue","wed","thu","fri","sat","sun"];
+export function makeProgramFromTasks(
+  weekStartISO: string,
+  teacherUid: string,
+  studentUid: string,
+  byDay: Partial<Record<DayKey, Task[]>>
+): WeeklyProgramDoc {
+  const days: DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
   const items = Object.fromEntries(
-    days.map(d => [d, { tasks: (byDay[d] ?? []).map(t => ({ ...t, questions: t.questions ?? 0, done: 0 as 0 })) }])
+    days.map((d) => [
+      d,
+      {
+        tasks: (byDay[d] ?? []).map((t) => ({
+          ...t,
+          questions: t.questions ?? 0,
+          done: 0 as const,
+        })),
+      },
+    ])
   ) as Record<DayKey, DayPlan>;
   return { weekStartISO, teacherUid, studentUid, items, createdAt: Date.now() };
 }
 
 /** upsert (varsa komple günceller, yoksa oluşturur) — iki tarafa da yazar */
-export async function saveWeeklyProgram(docIn: WeeklyProgramDoc): Promise<void> {
+export async function saveWeeklyProgram(
+  docIn: WeeklyProgramDoc
+): Promise<void> {
   const { db } = getFirebase();
   const { teacherUid, studentUid, weekStartISO } = docIn;
   const batch = writeBatch(db);
-  batch.set(doc(db,"users",teacherUid,"haftalikProgram",`${studentUid}_${weekStartISO}`), docIn, { merge:false });
-  batch.set(doc(db,"users",studentUid,"haftalikProgram",`${teacherUid}_${weekStartISO}`), docIn, { merge:false });
+  batch.set(
+    doc(
+      db,
+      "users",
+      teacherUid,
+      "haftalikProgram",
+      `${studentUid}_${weekStartISO}`
+    ),
+    docIn,
+    { merge: false }
+  );
+  batch.set(
+    doc(
+      db,
+      "users",
+      studentUid,
+      "haftalikProgram",
+      `${teacherUid}_${weekStartISO}`
+    ),
+    docIn,
+    { merge: false }
+  );
   await batch.commit();
 }
 
@@ -88,8 +133,28 @@ export async function updateDailyTasks(
   const { db } = getFirebase();
   const batch = writeBatch(db);
   const patch = { items: { [day]: { tasks } } };
-  batch.set(doc(db,"users",teacherUid,"haftalikProgram",`${studentUid}_${weekStartISO}`), patch, { merge:true });
-  batch.set(doc(db,"users",studentUid,"haftalikProgram",`${teacherUid}_${weekStartISO}`), patch, { merge:true });
+  batch.set(
+    doc(
+      db,
+      "users",
+      teacherUid,
+      "haftalikProgram",
+      `${studentUid}_${weekStartISO}`
+    ),
+    patch,
+    { merge: true }
+  );
+  batch.set(
+    doc(
+      db,
+      "users",
+      studentUid,
+      "haftalikProgram",
+      `${teacherUid}_${weekStartISO}`
+    ),
+    patch,
+    { merge: true }
+  );
   await batch.commit();
 }
 
@@ -124,6 +189,9 @@ export function calcStats(prog: WeeklyProgramDoc) {
   }
   return {
     totalMinutes: total,
-    bySubject: Array.from(bySubject.entries()).map(([subject, minutes]) => ({ subject, minutes })),
+    bySubject: Array.from(bySubject.entries()).map(([subject, minutes]) => ({
+      subject,
+      minutes,
+    })),
   };
 }
